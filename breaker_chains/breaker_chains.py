@@ -59,7 +59,7 @@ _MESSAGES = [
 
 class Ruler(object):
     __slots__ = ['_messages', 'ballot', '_ballot_picked', '_contenders', '_kingdoms', '_nominations', '_messages',
-                 '_subject_kingdoms', '_msg_kingdom', 'allegiance_map', '_pledge_covered', '_rounds', '_winner_map']
+                 '_subject_kingdoms', '_msg_kingdom', 'allegiance_map', '_pledge_covered', '_rounds', 'winner_map']
 
     def __init__(self, contenders=None):
         self.ballot = deque([], maxlen=6)
@@ -73,7 +73,7 @@ class Ruler(object):
         self.allegiance_map = defaultdict(list)
         self._subject_kingdoms = set()
         self._rounds = 0
-        self._winner_map = Counter()
+        self.winner_map = Counter()
 
     def reset(self):
         self.ballot.clear()
@@ -85,7 +85,7 @@ class Ruler(object):
         self._pledge_covered.clear()
         self.allegiance_map.clear()
         self._subject_kingdoms.clear()
-        self._winner_map.clear()
+        self.winner_map.clear()
 
     def _populate_kingdoms(self):
         self._kingdoms.update(_KINGDOMS)
@@ -168,12 +168,13 @@ class Ruler(object):
         self._post()
 
     def get_winner(self):
-        self._winner_map.update({king: len(self.allegiance_map[king]) for king in self.allegiance_map})
-        winners = self._winner_map.most_common(2)
+        self._run()
+        self.winner_map.update({king: len(self.allegiance_map[king]) for king in self.allegiance_map})
+        winners = self.winner_map.most_common(2)
         if winners:
             self._rounds += 1
-            #print(self._winner_map)
-            self.print_results()
+            #print(self.winner_map)
+            self._print_results()
         # If there's a tie or no winners at all.
         while (len(winners) > 1 and winners[0][1] == winners[1][1]) or not winners:
             assert self._contenders
@@ -188,21 +189,29 @@ class Ruler(object):
             self._run()
             assert self._msg_kingdom
             #print(self.allegiance_map)
-            self._winner_map.update({king: len(self.allegiance_map[king]) for king in self.allegiance_map})
-            winners = self._winner_map.most_common(2)
-            self.print_results()
+            self.winner_map.update({king: len(self.allegiance_map[king]) for king in self.allegiance_map})
+            winners = self.winner_map.most_common(2)
+            self._print_results()
 
-    def print_results(self):
+    def _print_results(self):
         print('Results after round {:d} ballot count'.format(self._rounds))
         for king in self._contenders:
-            print('Allies for {:s} : {:d}'.format(king, self._winner_map[king]))
+            print('Allies for {:s} : {:d}'.format(king, self.winner_map[king]))
 
-    def declare_winner(self):
-        if self._winner_map:
-            winner = self._winner_map.most_common()
-            king = winner[0][0]
-            print('Who is the ruler of Southeros?\n{:s}'.format(king))
-            print('Allies of Ruler?\n{:s}'.format(' '.join(sorted(self.allegiance_map[king]))))
+    @classmethod
+    def declare_winner(cls, instance=None):
+        winner = instance.winner_map.most_common()[0][0] if instance else None
+        allies = ' '.join(sorted(instance.allegiance_map[winner])) if winner else None
+        print('Who is the ruler of Southeros?\n{}'.format(winner))
+        print('Allies of Ruler?\n{}'.format(allies))
+
+    @classmethod
+    def find_winner(cls):
+        cls.declare_winner()
+        contenders = input('Enter the kingdoms competing to be the ruler:\n').strip().split()
+        instance = cls(contenders)
+        instance.get_winner()
+        cls.declare_winner(instance)
 
 
 def extract_keyword(message: str, receiving_kingdom: str) -> KEYWORD_TYPE:
@@ -218,14 +227,14 @@ def create_msg_packet(sender: str, msg: str, receiver: str) -> MsgPacket:
 
 
 if __name__ == '__main__':
-    ruler = Ruler(contenders=['Ice', 'Space', 'Air'])
-    # ruler = Ruler(contenders=['Ice', 'Space'])
-    # ruler = Ruler(contenders=['Ice'])
-    ruler._run()
-    # print(ruler._msg_kingdom)
-    # print(ruler.ballot)
-    # print(ruler._subject_kingdoms)
-    # print(ruler.allegiance_map)
-    ruler.get_winner()
-    ruler.declare_winner()
-
+    # ruler = Ruler(contenders=['Ice', 'Space', 'Air'])
+    # # ruler = Ruler(contenders=['Ice', 'Space'])
+    # # ruler = Ruler(contenders=['Ice'])
+    # ruler._run()
+    # # print(ruler._msg_kingdom)
+    # # print(ruler.ballot)
+    # # print(ruler._subject_kingdoms)
+    # # print(ruler.allegiance_map)
+    # ruler.get_winner()
+    # ruler.declare_winner()
+    Ruler.find_winner()
