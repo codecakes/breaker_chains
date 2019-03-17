@@ -196,7 +196,7 @@ class Ruler(object):
     def _print_results(self):
         print('Results after round {:d} ballot count'.format(self._rounds))
         for king in self._contenders:
-            print('Allies for {:s} : {:d}'.format(king, self.winner_map[king]))
+            print('Allies for {:s} : {:d}'.format(king.capitalize(), self.winner_map[king]))
 
     @classmethod
     def declare_winner(cls, instance=None):
